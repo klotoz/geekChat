@@ -51,7 +51,12 @@ public class ClientHandler {
                                 break;
                             }
 
-                            else {
+                            // и добавлен кусок кода вот здесь: личные сообщения
+
+                            if (str.startsWith("/w ")) {
+                                String[] tokens = str.split(" ", 3);
+                                server.uniCast(ClientHandler.this, tokens[1], tokens[2]);
+                            } else {
                                 server.broadCastMsg(this, str);
                             }
                         }

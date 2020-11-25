@@ -45,7 +45,18 @@ public class Server {
         }
     }
 
+    //добавлен кусок кода вот тут: личные сообщение
 
+    public void uniCast(ClientHandler from, String nickTo, String msg) {
+        for (ClientHandler client : clients) {
+            if (client.getNickname().equals(nickTo)) {
+                client.sendMsg("От " + from.getNickname() + ": " + msg + "\n");
+                from.sendMsg("Для " + nickTo + ": " + msg + "\n");
+                return;
+            }
+        }
+        from.sendMsg("Пользователя с ником: " + nickTo + " нет в чате.");
+    }
 
     public void subscribe(ClientHandler clientHandler){
         clients.add(clientHandler);
