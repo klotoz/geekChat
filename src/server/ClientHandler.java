@@ -32,7 +32,7 @@ public class ClientHandler {
                         // цикл аутентификации
                         while (true){
                             String str = in.readUTF();
-
+                            socket.setSoTimeout(120000);
 
 
                             if (str.startsWith("/auth")){
@@ -47,7 +47,7 @@ public class ClientHandler {
                                         sendMsg("/authok " + nickname);
                                         server.subscribe(this);
                                         System.out.println("Клиент " + nickname + " подключился");
-
+                                        socket.setSoTimeout(0);
                                         break;
                                     }else{
                                         sendMsg("С данной учетной записью уже зашли");
@@ -60,7 +60,7 @@ public class ClientHandler {
 
                             if (str.startsWith("/reg")){
                                 String[] token = str.split("\\s");
-
+                                socket.setSoTimeout(0); //тут не обязательно, но почему бы и нет
                                 if(token.length < 4){
                                     continue;
                                 }
