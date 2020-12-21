@@ -1,9 +1,13 @@
 package server;
 
+
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+
+
 
 public class ClientHandler {
 
@@ -12,6 +16,7 @@ public class ClientHandler {
     DataInputStream in;
     DataOutputStream out;
     private String nickname;
+    private String login;
 
 
     public ClientHandler(Server server, Socket socket) {
@@ -21,37 +26,74 @@ public class ClientHandler {
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
 
+
             new Thread(()-> {
                     try {
                         // цикл аутентификации
                         while (true){
                             String str = in.readUTF();
+                            socket.setSoTimeout(120000);
+
 
                             if (str.startsWith("/auth")){
+
                                 String[] token = str.split("\\s");
                                 String newNick = server.getAuthService().getNicknameByLoginAndPassword(token[1], token[2]);
+                                login = token[1];
 
                                 if (newNick != null){
-                                    nickname = newNick;
-                                    sendMsg("/authok " + nickname);
-                                    server.subscribe(this);
-                                    System.out.println("Клиент " + nickname + " подключился");
-                                    break;
+                                    if(!server.isLoginAuthenticated(token[1])) {
+                                        nickname = newNick;
+                                        sendMsg("/authok " + nickname);
+                                        server.subscribe(this);
+                                        System.out.println("Клиент " + nickname + " подключился");
+                                        socket.setSoTimeout(0);
+                                        break;
+                                    }else{
+                                        sendMsg("С данной учетной записью уже зашли");
+
+                                    }
                                 }else {
                                     sendMsg("Неверный логин / пароль");
                                 }
                             }
+
+                            if (str.startsWith("/reg")){
+                                String[] token = str.split("\\s");
+                                socket.setSoTimeout(0); //тут не обязательно, но почему бы и нет
+                                if(token.length < 4){
+                                    continue;
+                                }
+                                boolean isRegistration = server.getAuthService()
+                                        .registration(token[1], token[2], token[3]);
+                                if(isRegistration){
+                                    sendMsg("/regok");
+                                } else {
+                                    sendMsg("/regno");
+                                }
+                            }
                         }
 
+                        // цикл работы
                         while (true) {
                             String str = in.readUTF();
 
-                            if (str.equals("/end")) {
-                                out.writeUTF("/end");
-                                break;
-                            }
+                            if(str.startsWith("/")) {
 
-                            else {
+                                if (str.equals("/end")) {
+                                    out.writeUTF("/end");
+                                    break;
+                                }
+
+                                if (str.startsWith("/w")) {
+                                    String[] token = str.split("\\s+", 3);
+                                    if (token.length <3){
+                                        continue;
+                                    }
+                                    server.privateCastMsg(this, token[1], token[2]);
+                                }
+
+                            }else {
                                 server.broadCastMsg(this, str);
                             }
                         }
@@ -82,5 +124,9 @@ public class ClientHandler {
 
     public String getNickname(){
         return nickname;
+    }
+
+    public String getLogin() {
+        return login;
     }
 }
